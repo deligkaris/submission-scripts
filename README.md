@@ -6,3 +6,4 @@ These are scripts that allow the submission of computing jobs to the resource ma
 - submdr submits a Gromacs MD calculation
 - subjnb submits a Jupyter notebook calculation
 - subipy submits a parallel ipython calculation
+- subgms submits a Gamess calculation
