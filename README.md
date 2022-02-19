@@ -4,3 +4,4 @@ These are scripts that allow the submission of computing jobs to the resource ma
 
 - subnwc submits an NWChem job
 - submdr submits a Gromacs MD calculation
+- subjnb submits a Jupyter notebook calculation
