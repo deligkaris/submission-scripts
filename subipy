@@ -1,0 +1,93 @@
+#!/bin/bash
+#############################################
+# author:       Christos Deligkaris
+# date:         April 2018
+#
+# this script submits parallel Jupyter notebbok jobs on the cluster using the SLURM job manager
+#############################################
+
+# check the arguments
+if [ $# -lt 1 ]; then
+	echo $'\nERROR: you need at least one argument (the notebook file)....\n'
+	echo $'USAGE: subipy inputfile.nw SLURM-ARGUMENTS\n'
+	echo $'SLURM-ARGUMENTS: --partition=X (partition/queue)'
+	echo $'SLURM-ARGUMENTS: --ntasks=X (ntasks needs to be the same number as the number of engines requested in the notebook)' 
+	echo $'SLURM-ARGUMENTS: --nodes=X (nodes will need to be set to 1)'
+	echo $'SLURM-ARGUMENTS: --cpus-per-task=X (cpus refers to cores)'
+	echo $'INFO: Set ntasks to be the number of process you want to launch and cpus-per-task the number of threads per process.'
+	echo $'INFO:For an MPI job with 8 processes, set a=8, b=1.'
+	echo $'INFO:For an OpenMP job with 12 threads, set a=1, b=12.'
+	echo $'INFO:For a hybrid 8-process, 12-threads per process MPI job with OpenMP 'inside', set a=8, b=12.'
+	echo $'SLURM-ARGUMENTS: --ntasks-per-node=X (force your jobs to run at most at X at a time on a single node)'
+	echo $'SLURM-ARGUMENTS: --mem-per-cpu=X (default is around 2GB per core, if your job exceeds the requested amount SLURM will kill it)'
+	echo $'SLURM-ARGUMENTS: --exclusive (reserves the whole node for your job)'
+#	echo $'AVOID MEMORY ERRORS: subnwc X.nw --ntasks=1 --nodes=1 --cpus-per-task=8 --partition=medium\n'
+        exit
+fi
+
+inputfile="$1"
+outputfile="jnb.log"
+jobname=$(echo "$inputfile" | awk '{print substr($0,1,15)}')
+#jobname="jupyter-notebook"
+
+# check if the input file is an ordinary file and readable
+if [ ! -f "$inputfile" ] || [ ! -r "$inputfile" ] ; then
+        echo "ERROR: cannot find or read input file \"${inputfile}\""
+        exit
+fi
+
+# pass the sbatch arguments
+sbatch_arg=
+for arg in $@; do
+       if [ $arg != $0 ] && [ $arg != $1 ] ; then
+                # pass the argument
+                sbatch_arg="$sbatch_arg $arg"
+      fi
+done
+
+# submit the SLURM job
+sbatch ${sbatch_arg} << EOF
+#!/bin/bash
+##################################################################
+# Define the job name
+#SBATCH --job-name=$jobname
+#
+# Set a pattern for the output file.
+#SBATCH --output=$outputfile
+#  By default both standard output and  standard  error are directed to a file of the name "slurm-%j.out", where the "%j" 
+# is replaced with the job allocation number.   The filename pattern may contain one or more replacement symbols, which are 
+# a percent sign "%" followed by a letter (e.g. %j).
+#
+# Supported replacement symbols are:
+#     %j     Job allocation number.
+#     %N     Main node name.  
+#
+##################################################################
+#
+#  all environment variables will be exported to the context of the job  
+#SBATCH --export=ALL
+#
+##################################################################
+
+#cd \$SLURM_SUBMIT_DIR #I am not sure if I need this or not
+
+######################
+
+echo "Launching controller"
+/opt/anaconda3/bin/ipcontroller --ip='*' &
+sleep 10
+
+echo "Launching engines"
+srun /opt/anaconda3/bin/ipengine &
+sleep 25
+
+echo "Launching job"
+/opt/anaconda3/bin/python checkipnb.py \$inputfile
+
+echo "Done!"
+
+######################
+
+EOF
+
+# end of job
