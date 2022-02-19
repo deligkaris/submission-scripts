@@ -7,3 +7,4 @@ These are scripts that allow the submission of computing jobs to the resource ma
 - subjnb submits a Jupyter notebook calculation
 - subipy submits a parallel ipython calculation
 - subgms submits a Gamess calculation
+- subag423 and subad423 submit an AutoGrid 4.23 and AutoDock 4.23 calculation respectively
